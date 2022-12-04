@@ -24,65 +24,142 @@ void MainWindow::on_button_run_clicked() {
 }
 
 std::pair<std::string, std::string> MainWindow::ParserString(std::string string) {
-    //    std::cout<<string<<std::endl;
-    std::string is_wrong;
     std::string conclusion, original_expression;
-    while (string.find_first_not_of(' ')
-           || string.find_first_not_of('\t')
-           || string.find_first_not_of('\n')) {
-        string.erase(0, string.find_first_not_of(' '));
-        string.erase(0, string.find_first_not_of('\t'));
-        string.erase(0, string.find_first_not_of('\n'));
-    }
-    string[string.size()] = '\n';
-    bool is_printf = false, is_fun_end = false, is_left_bracket = false, is_right_bracket = false; int string_number = 1;
-    for (size_t index = 0; index < string.size(); index++) {
-        if (index == 0) {
-            std::string function{};
-            while (string[index]!='(' && string[index]!=' ' && string[index]!='\t' && string[index]!='\n') {              // добавить условие чтобы мог находить все указанные элементы
-                function+=string[index];               // удаляем пробелы табуляции и переносы строк, смотрим какой знак после очищение. если не скобка говорим удалить лишние знаки
-                index++;
+    if (string.size()){
+        std::string is_wrong;
+        std::vector<ERROR> errors;
+        while (string.find_first_not_of(' ')
+               || string.find_first_not_of('\t')
+               || string.find_first_not_of('\n')) {
+            string.erase(0, string.find_first_not_of(' '));
+            string.erase(0, string.find_first_not_of('\t'));
+            string.erase(0, string.find_first_not_of('\n'));
+        }
+        string[string.size()] = '\n'/*, string[string.size()+1] = '\0'*/;
+        bool is_fun_end = false, is_open_bracket = false, is_close_bracket = false, is_semicolon = false; int string_number = 1;
+        for (size_t index = 0; index < string.size(); index++) {
+            if (index == 0) {
+                std::string function{};
+                while (string[index]!='(' && string[index]!=' ' && string[index]!='\t'
+                       && string[index]!='\n' && string[index]!=';') {              // добавить условие чтобы мог находить все указанные элементы
+                    function+=string[index];               // удаляем пробелы табуляции и переносы строк, смотрим какой знак после очищение. если не скобка говорим удалить лишние знаки
+                    index++;
+                }
+
+                if (function!="printf") {
+                    ERROR wrong_fun;
+                    wrong_fun.wrong_func = true;
+                    wrong_fun.string_number = string_number;
+                    errors.push_back(wrong_fun);
+                }
+                original_expression+=function;
+                is_fun_end = true;
             }
-            if(function!="printf") {
+
+
+            if(is_fun_end && !is_open_bracket && (string[index]!= ' ' && string[index]!= '\t' && string[index]!= '\n'
+                                                  && string[index]!= ';' && string[index]!= '(')) {
+                ERROR extra_symbols;
+                extra_symbols.extra_symblos = true;
+                extra_symbols.string_number = string_number;
+                errors.push_back(extra_symbols);
+            }
+            if(string[index] == ';') {
+                is_semicolon = true;
+            }
+            if(is_close_bracket && !is_semicolon && (string[index]!= ' ' && string[index]!= '\t' && string[index]!= '\n')) {
+                ERROR extra_symbols_after_close_bracket;
+                extra_symbols_after_close_bracket.extra_symbols_after_close_bracket = true;
+                extra_symbols_after_close_bracket.string_number = string_number;
+                errors.push_back(extra_symbols_after_close_bracket);
+            }
+
+
+
+            if(is_fun_end && !is_open_bracket && (string[index] == ')' || string[index] == '"' || index+1 >= string.size())){
+                ERROR no_open_bracket;
+                no_open_bracket.no_open_bracket = true;
+                no_open_bracket.string_number = string_number;
+                errors.push_back(no_open_bracket);
+            }
+
+            if(string[index] == ')') {
+                is_close_bracket = true;
+            }
+            if((is_open_bracket && !is_close_bracket  && (string[index] == ';' ||index+1 >= string.size() )) /*|| index+1 >= string.size()*/) {
+                std::cout<<"is_open_bracket = "<<is_open_bracket<<" is_close_bracket = "<<is_close_bracket;
+                ERROR no_close_bracket;
+                no_close_bracket.no_close_bracket = true;
+                no_close_bracket.string_number = string_number;
+                errors.push_back(no_close_bracket);
+            }
+
+            if (index+1 >= string.size()) {
+                if (string[index] != ';') {
+                    ERROR no_semicolon;
+                    no_semicolon.no_semicolon = true;
+                    no_semicolon.string_number = string_number;
+                    errors.push_back(no_semicolon);
+                }
+                string_number++;
+            }
+            if (string[index]=='(') {
+                is_open_bracket = true;
+            }
+
+
+
+            if(string[index]!= ' ' && string[index]!= '\t' && string[index]!= '\n'){
+                original_expression+=string[index];
+            }
+        }
+//        printf()fddfd;
+        bool extra_flag = false, is_extra_close_bracket = false, is_extra_open_bracket = false, extra_flag_after_close = false;
+        for (size_t i = 0; i < errors.size(); ++i) {
+            if (errors[i].wrong_func) {
                 conclusion+="Строка ";
-                conclusion+= std::to_string(string_number);
+                conclusion+= std::to_string(errors[i].string_number);
                 conclusion+=". Ошибка: нет такой функции. Возможно Вы имели ввиду printf\n";
-            }
-
-            while (string.find_first_not_of(' ',index) - index
-                   || string.find_first_not_of('\t',index) - index
-                   || string.find_first_not_of('\n',index) - index) {
-                size_t sub1 = string.find_first_not_of(' ',index) - index;
-                size_t sub2 = string.find_first_not_of('\t',index) - index;
-                size_t sub3 = string.find_first_not_of('\n',index) - index;
-                index+=sub1;
-                index+=sub2;
-                index+=sub3;
-            }
-            original_expression+=function;
-            is_fun_end = true;
-        }
-        if(is_fun_end && string[index]!='(') {
-            conclusion+="Строка ";
-            conclusion+= std::to_string(string_number);
-            if(string[index+1]=='('){
-                conclusion+=". Ошибка: удалите лишние элементы перед открывающей скобкой\n";
-            }else {
-                conclusion+=". Ошибка: нет открывающей скобки\n";
-            }
-
-        }
-        if (string[index]=='\n') {
-            if (string[index-1] != ';') {
+            } else if (!extra_flag && errors[i].extra_symblos) {
+                extra_flag = true;
                 conclusion+="Строка ";
-                conclusion+= std::to_string(string_number);
+                conclusion+= std::to_string(errors[i].string_number);
+                conclusion+=". Ошибка: лишние символы после названия функции\n";
+            } else if (!extra_flag_after_close && errors[i].extra_symbols_after_close_bracket) {
+                extra_flag_after_close = true;
+                conclusion+="Строка ";
+                conclusion+= std::to_string(errors[i].string_number);
+                conclusion+=". Ошибка: лишние символы после закрывающей скобки\n";
+            } else if (!is_extra_open_bracket && errors[i].no_open_bracket) {
+                is_extra_open_bracket = true;
+                conclusion+="Строка ";
+                conclusion+= std::to_string(errors[i].string_number);
+                conclusion+=". Ошибка: нет открывающей скобки\n";
+            } else if (!is_extra_close_bracket && errors[i].no_close_bracket) {
+                is_extra_close_bracket = true;
+                conclusion+="Строка ";
+                conclusion+= std::to_string(errors[i].string_number);
+                conclusion+=". Ошибка: нет закрывающей скобки\n";
+            } else if (errors[i].no_semicolon) {
+                conclusion+="Строка ";
+                conclusion+= std::to_string(errors[i].string_number);
                 conclusion+=". Ошибка: нет знака ; после выражения\n";
             }
-            string_number++;
         }
-        original_expression += string[index];
     }
+
     auto pair = std::make_pair(original_expression, conclusion);
     return pair;
 }
+
+//            while ((string.find_first_not_of(' ',index) - index
+//                   || string.find_first_not_of('\t',index) - index
+//                   || string.find_first_not_of('\n',index) - index) && string[index] != '\0') {
+//                size_t sub1 = string.find_first_not_of(' ',index) - index;
+//                size_t sub2 = string.find_first_not_of('\t',index) - index;
+//                size_t sub3 = string.find_first_not_of('\n',index) - index;
+//                index+=sub1;
+//                index+=sub2;
+//                index+=sub3;
+//            }
 

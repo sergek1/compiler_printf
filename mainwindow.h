@@ -6,10 +6,21 @@
 #include <stdio.h>
 #include <string>
 #include <utility>
+#include <vector>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+typedef struct ERROR {
+    int string_number;
+    bool wrong_func = false;
+    bool no_open_bracket = false;
+    bool no_close_bracket = false;
+    bool extra_symblos = false;
+    bool no_semicolon = false;
+    bool extra_symbols_after_close_bracket = false;
+} ERROR;
 
 class MainWindow : public QMainWindow
 {
