@@ -20,6 +20,7 @@ typedef struct ERROR {
     bool extra_symblos = false;
     bool no_semicolon = false;
     bool extra_symbols_after_close_bracket = false;
+    bool extra_before_quote = false;
 } ERROR;
 
 class MainWindow : public QMainWindow
