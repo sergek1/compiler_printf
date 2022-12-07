@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui_(new Ui::MainWindow) {
@@ -10,9 +9,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui_->field_output->setPlaceholderText("Результат запуска ...");
     QPixmap pixmap("qt/images/diskette.png");
     QIcon ButtonIcon(pixmap);
-    ui_->save->setIcon(ButtonIcon);
-    ui_->save->setToolTip("Сохранить поле вывода");
-    ui_->save->setToolTipDuration(5000);
+    ui_->save_output->setIcon(ButtonIcon);
+    ui_->save_output->setToolTip("Сохранить поле вывода");
+    ui_->save_output->setToolTipDuration(5000);
 
     QPixmap pixmap1("qt/images/floppy-disk.png");
     QIcon ButtonIcon1(pixmap1);
@@ -32,6 +31,30 @@ MainWindow::MainWindow(QWidget *parent)
     ui_->copy_output->setToolTip("Скопировать поле вывода");
     ui_->copy_output->setToolTipDuration(5000);
 
+    QPixmap pixmap4("qt/images/folder.png");
+    QIcon ButtonIcon4(pixmap4);
+    ui_->input_from_file->setIcon(ButtonIcon4);
+    ui_->input_from_file->setToolTip("Открыть файл для вввода");
+    ui_->input_from_file->setToolTipDuration(5000);
+    //    ui_->input_from_file.
+
+    QPixmap pixmap5("qt/images/information.png");
+    QIcon ButtonIcon5(pixmap5);
+    ui_->info->setIcon(ButtonIcon5);
+    ui_->info->setToolTip("Информация о функции printf");
+    ui_->info->setToolTipDuration(5000);
+
+    QPixmap pixmap6("qt/images/save-file.png");
+    QIcon ButtonIcon6(pixmap6);
+    ui_->save_all->setIcon(ButtonIcon6);
+    ui_->save_all->setToolTip("Сохранить поля ввода и вывода");
+    ui_->save_all->setToolTipDuration(5000);
+
+    QPixmap pixmap7("qt/images/cleaning.png");
+    QIcon ButtonIcon7(pixmap7);
+    ui_->clear->setIcon(ButtonIcon7);
+    ui_->clear->setToolTip("Очистить поле ввода");
+    ui_->clear->setToolTipDuration(5000);
 }
 
 MainWindow::~MainWindow() {
@@ -61,7 +84,7 @@ std::pair<std::string, std::string> MainWindow::ParserString(std::string string)
             string.erase(0, string.find_first_not_of('\n'));
         }
         string[string.size()] = '\n';
-        bool is_fun_end = false, is_open_bracket = false, is_close_bracket = false, is_semicolon = false, is_open_quote = false, is_close_quote = false;
+        bool is_fun_end = false, is_wrong_function = false, is_open_bracket = false, is_close_bracket = false, is_semicolon = false, is_open_quote = false, is_close_quote = false;
         int string_number = 1, quote_count = 0;
         for (size_t index = 0; index < string.size(); index++) {
             if (index == 0) {
@@ -71,10 +94,13 @@ std::pair<std::string, std::string> MainWindow::ParserString(std::string string)
                     index++;
                 }
                 if (function!="printf") {
+                    is_wrong_function = true;
+
                     ERROR wrong_fun;
                     wrong_fun.wrong_func = true;
                     wrong_fun.string_number = string_number;
                     errors.push_back(wrong_fun);
+                    break;
                 }
                 original_expression+=function;
                 is_fun_end = true;
@@ -138,22 +164,26 @@ std::pair<std::string, std::string> MainWindow::ParserString(std::string string)
             }
         }
 
-        bool no_open_bracket = false, no_close_bracket = false;
-        for (size_t i = 0; i < errors.size(); ++i) {
-            if (errors[i].no_open_bracket) {
-                no_open_bracket = true;
-            } else if (errors[i].no_close_bracket) {
-                no_close_bracket = true;
+        if(!is_wrong_function){
+            bool no_open_bracket = false, no_close_bracket = false;
+            for (size_t i = 0; i < errors.size(); ++i) {
+                if (errors[i].no_open_bracket) {
+                    no_open_bracket = true;
+                } else if (errors[i].no_close_bracket) {
+                    no_close_bracket = true;
+                }
+            }
+            if(quote_count == 2 && !no_open_bracket && !no_close_bracket) {
+                QuoteHandling(string, &errors);
+            } else if (quote_count < 2) {
+                ERROR no_quotes;
+                no_quotes.no_quotes = true;
+                no_quotes.string_number = string_number-1;
+                errors.push_back(no_quotes);
             }
         }
-        if(quote_count == 2 && !no_open_bracket && !no_close_bracket) {
-            QuoteHandling(string, &errors);
-        } else if (quote_count < 2) {
-            ERROR no_quotes;
-            no_quotes.no_quotes = true;
-            no_quotes.string_number = string_number-1;
-            errors.push_back(no_quotes);
-        }
+
+
         conclusion = ErrorHandling(errors, function);
     }
     auto pair = std::make_pair(original_expression, conclusion);printf("%m");
@@ -248,16 +278,79 @@ std::string MainWindow::ErrorHandling(std::vector<ERROR> errors, std::string fun
             conclusion+=". Ошибка: не хватает кавычек\n";
         }
     }
-
     return conclusion;
 }
 
+void MainWindow::on_info_clicked() {
+    Information kk;
+    kk.setWindowTitle("Функция printf");
+    kk.show();
+    kk.exec();
+}
+
+void MainWindow::on_input_from_file_clicked() {
+    try {
+        QString qfile_for_input = QFileDialog::getOpenFileName(this, "Выбрать файл");
+        std::string string;
+        std::string file_for_input = qfile_for_input.toStdString();
+        std::ifstream in(file_for_input);
+        if (!in) throw std::invalid_argument("Файл для чтения не выбран");
+        if (file_for_input.substr(file_for_input.size() - 4, 4) != ".txt"
+                && file_for_input.substr(file_for_input.size() - 2, 2) != ".c"
+                && file_for_input.substr(file_for_input.size() - 4, 4) != ".cpp")
+            throw std::invalid_argument("Неверное расширение файла. Допустимые расширения: .txt, .c, .cpp.");
+        while (in) {
+            std::string line;
+            getline(in, line);
+            string += line;
+        }
+        ui_->field_input->setText(QString::fromUtf8(string));
+        in.close();
+    } catch (const std::exception &ex) {
+        QMessageBox::warning(this, "Werror", ex.what());
+    }
+}
 
 
-void MainWindow::on_save_clicked()
+void MainWindow::on_save_all_clicked() {
+    QString qsave_output = QFileDialog::getSaveFileName(this, "Сохранить в файл ...", QDir::homePath() + "/" );
+    QString text_of_input = ui_->field_input->toPlainText();
+    QString text_of_output = ui_->field_output->toPlainText();
+    std::ofstream out;
+    out.open(qsave_output.toStdString());
+    if (out.is_open()) {
+        out << text_of_input.toStdString() <<"\n"<< text_of_output.toStdString();
+    }
+    out.close();
+}
+
+
+void MainWindow::on_clear_clicked()
 {
-//    ui_->save->setToolTip("Сохранить отчет");
-//    QToolTip::showText( ui_->save->mapToGlobal( QPoint( 0, 0 ) ), "errorString" );
-//    QToolTip::showText(QPoint(10,10),"текст сообщения");
+    ui_->field_input->setText("");
+}
+
+
+void MainWindow::on_save_input_clicked()
+{
+    QString qsave_output = QFileDialog::getSaveFileName(this, "Сохранить в файл ...", QDir::homePath() + "/" );
+    QString text_of_output = ui_->field_input->toPlainText();
+    std::ofstream out;
+    out.open(qsave_output.toStdString());
+    if (out.is_open()) {
+        out << text_of_output.toStdString();
+    }
+    out.close();
+}
+
+void MainWindow::on_save_output_clicked() {
+    QString qsave_output = QFileDialog::getSaveFileName(this, "Сохранить в файл ...", QDir::homePath() + "/" );
+    QString text_of_output = ui_->field_output->toPlainText();
+    std::ofstream out;
+    out.open(qsave_output.toStdString());
+    if (out.is_open()) {
+        out << text_of_output.toStdString();
+    }
+    out.close();
 }
 

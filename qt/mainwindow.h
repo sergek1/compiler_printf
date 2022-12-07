@@ -8,6 +8,10 @@
 #include <utility>
 #include <vector>
 #include <QToolTip>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <fstream>
+#include "information.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -41,7 +45,17 @@ private slots:
 
     void on_button_run_clicked();
 
-    void on_save_clicked();
+    void on_info_clicked();
+
+    void on_save_output_clicked();
+
+    void on_input_from_file_clicked();
+
+    void on_save_all_clicked();
+
+    void on_clear_clicked();
+
+    void on_save_input_clicked();
 
 private:
     Ui::MainWindow *ui_;
@@ -49,4 +63,7 @@ private:
     void QuoteHandling(std::string string, std::vector<ERROR> *errors);
     std::string ErrorHandling(std::vector<ERROR> errors, std::string function);
 };
+
+
+
 #endif // MAINWINDOW_H
